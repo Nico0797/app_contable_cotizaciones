@@ -1,12 +1,12 @@
 # App Contable Cotizaciones Offline
 
-App movil offline con Expo, React Native y SQLite local.
+Aplicación móvil offline para cotizaciones, ventas, inventario, movimientos y cartera. Toda la información se guarda localmente en SQLite dentro del dispositivo con `expo-sqlite`.
 
-Flujo principal:
+## Flujo principal
 
-Cotizacion creada -> Cotizacion confirmada -> Venta registrada.
+Cotización creada -> Cotización confirmada -> Venta registrada automáticamente
 
-Modulos iniciales:
+## Pantallas incluidas
 
 - Inicio
 - Cotizaciones
@@ -14,11 +14,24 @@ Modulos iniciales:
 - Clientes
 - Inventario
 - Movimientos
+- Cartera / Pendientes
 
-Para instalar:
+## Instalar dependencias
 
+```bash
 npm install
+```
 
-Para probar:
+## Ejecutar en desarrollo
 
+```bash
 npx expo start
+```
+
+## Generar APK de prueba
+
+```bash
+npm install -g eas-cli
+eas login
+eas build -p android --profile preview
+```
