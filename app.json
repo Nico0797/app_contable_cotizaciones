@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "Cotizaciones Offline",
+    "slug": "app-contable-cotizaciones-offline",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "android": {
+      "package": "com.nico0797.cotizacionesoffline",
+      "versionCode": 1
+    },
+    "plugins": ["expo-sqlite"]
+  }
+}
