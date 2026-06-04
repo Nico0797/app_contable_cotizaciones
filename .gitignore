@@ -1,6 +1,9 @@
 node_modules/
 .expo/
 .eas/
+.appdata/
+.appdata-local/
+.gradle-home/
 dist/
 android/
 ios/
