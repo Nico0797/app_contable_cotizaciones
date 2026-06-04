@@ -1,33 +1,148 @@
 import React from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../theme';
 
-export function Screen({ title, subtitle, children }) {
+export function Screen({
+  title,
+  subtitle,
+  children,
+  floatingAction,
+  contentContainerStyle,
+}) {
   return (
-    <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.screenContent}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{title}</Text>
-        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-      </View>
-      {children}
-    </ScrollView>
+    <LinearGradient colors={theme.gradients.screen} style={styles.screenRoot}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={[styles.screenContent, contentContainerStyle]}
+        showsVerticalScrollIndicator={false}
+      >
+        <AppHeader title={title} subtitle={subtitle} />
+        {children}
+      </ScrollView>
+      {floatingAction}
+    </LinearGradient>
   );
 }
 
-export function SectionTitle({ title, subtitle }) {
+export function AppHeader({ title, subtitle, rightSlot }) {
   return (
-    <View style={styles.sectionWrap}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      {subtitle ? <Text style={styles.sectionSubtitle}>{subtitle}</Text> : null}
+    <LinearGradient colors={theme.gradients.header} style={styles.appHeader}>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.headerEyebrow}>App offline</Text>
+        <Text style={styles.headerTitle}>{title}</Text>
+        {subtitle ? <Text style={styles.headerSubtitle}>{subtitle}</Text> : null}
+      </View>
+      {rightSlot}
+    </LinearGradient>
+  );
+}
+
+export function SectionTitle({ title, subtitle, actionLabel, onActionPress }) {
+  return (
+    <View style={styles.sectionRow}>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        {subtitle ? <Text style={styles.sectionSubtitle}>{subtitle}</Text> : null}
+      </View>
+      {actionLabel ? (
+        <Pressable onPress={onActionPress} style={styles.sectionAction}>
+          <Text style={styles.sectionActionText}>{actionLabel}</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
 
-export function Card({ children, style }) {
-  return <View style={[styles.card, style]}>{children}</View>;
+export function Card({ children, style, pressable, onPress }) {
+  const body = (
+    <LinearGradient colors={theme.gradients.darkCard} style={[styles.card, style]}>
+      {children}
+    </LinearGradient>
+  );
+
+  if (pressable) {
+    return (
+      <Pressable onPress={onPress} style={({ pressed }) => [{ opacity: pressed ? 0.92 : 1 }]}>
+        {body}
+      </Pressable>
+    );
+  }
+
+  return body;
 }
 
-export function Field({ label, value, onChangeText, placeholder, keyboardType, multiline }) {
+export function MetricCard({ label, value, helper, tone = 'primary' }) {
+  const toneConfig = {
+    primary: theme.gradients.primary,
+    success: theme.gradients.success,
+    warning: theme.gradients.warning,
+    danger: ['#fb7185', '#ef4444'],
+  };
+  return (
+    <Card style={styles.metricCard}>
+      <LinearGradient colors={toneConfig[tone] || toneConfig.primary} style={styles.metricOrb} />
+      <Text style={styles.metricLabel}>{label}</Text>
+      <Text style={styles.metricValue}>{value}</Text>
+      {helper ? <Text style={styles.metricHelper}>{helper}</Text> : null}
+    </Card>
+  );
+}
+
+export function ActionButton({ label, icon, onPress, tone = 'primary', compact }) {
+  const colors =
+    tone === 'secondary'
+      ? ['rgba(148,163,184,0.2)', 'rgba(71,85,105,0.22)']
+      : tone === 'success'
+      ? theme.gradients.success
+      : tone === 'warning'
+      ? theme.gradients.warning
+      : tone === 'ghost'
+      ? ['rgba(15,23,42,0.22)', 'rgba(15,23,42,0.16)']
+      : theme.gradients.primary;
+
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => [{ opacity: pressed ? 0.9 : 1 }]}>
+      <LinearGradient
+        colors={colors}
+        style={[styles.actionButton, compact ? styles.actionButtonCompact : null]}
+      >
+        {icon ? <Ionicons name={icon} size={16} color={theme.colors.textStrong} /> : null}
+        <Text style={styles.actionButtonText}>{label}</Text>
+      </LinearGradient>
+    </Pressable>
+  );
+}
+
+export function FloatingButton({ label, icon = 'add', onPress }) {
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.fabWrap, { opacity: pressed ? 0.92 : 1 }]}>
+      <LinearGradient colors={theme.gradients.primary} style={styles.fab}>
+        <Ionicons name={icon} size={20} color={theme.colors.textStrong} />
+        <Text style={styles.fabText}>{label}</Text>
+      </LinearGradient>
+    </Pressable>
+  );
+}
+
+export function AppInput({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  keyboardType,
+  multiline,
+}) {
   return (
     <View style={styles.fieldWrap}>
       <Text style={styles.fieldLabel}>{label}</Text>
@@ -35,62 +150,66 @@ export function Field({ label, value, onChangeText, placeholder, keyboardType, m
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="#94a3b8"
+        placeholderTextColor={theme.colors.mutedSoft}
         keyboardType={keyboardType}
         multiline={multiline}
-        style={[styles.input, multiline ? styles.multiline : null]}
+        style={[styles.input, multiline ? styles.inputMultiline : null]}
       />
     </View>
   );
 }
 
-export function Button({ label, onPress, variant = 'primary', icon, disabled }) {
-  const backgroundColor =
-    variant === 'secondary' ? '#e2e8f0' : variant === 'danger' ? '#dc2626' : '#2563eb';
-  const textColor = variant === 'secondary' ? '#0f172a' : '#ffffff';
+export function AppModal({ visible, title, subtitle, children, onClose }) {
   return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      style={[styles.button, { backgroundColor, opacity: disabled ? 0.6 : 1 }]}
-    >
-      {icon ? <Ionicons name={icon} size={16} color={textColor} /> : null}
-      <Text style={[styles.buttonText, { color: textColor }]}>{label}</Text>
-    </Pressable>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalSheet}>
+          <LinearGradient colors={theme.gradients.darkCard} style={styles.modalInner}>
+            <View style={styles.modalHandle} />
+            <View style={styles.modalHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalTitle}>{title}</Text>
+                {subtitle ? <Text style={styles.modalSubtitle}>{subtitle}</Text> : null}
+              </View>
+              <Pressable onPress={onClose} style={styles.iconButton}>
+                <Ionicons name="close" size={20} color={theme.colors.textStrong} />
+              </Pressable>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.modalContent}>
+              {children}
+            </ScrollView>
+          </LinearGradient>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
-export function Badge({ label, tone = 'neutral' }) {
-  const tones = {
-    neutral: { bg: '#e2e8f0', fg: '#334155' },
-    success: { bg: '#dcfce7', fg: '#166534' },
-    warning: { bg: '#fef3c7', fg: '#92400e' },
-    danger: { bg: '#fee2e2', fg: '#991b1b' },
-    info: { bg: '#dbeafe', fg: '#1d4ed8' },
-  };
-  const toneStyle = tones[tone] || tones.neutral;
+export function EmptyState({ title, message }) {
   return (
-    <View style={[styles.badge, { backgroundColor: toneStyle.bg }]}>
-      <Text style={[styles.badgeText, { color: toneStyle.fg }]}>{label}</Text>
-    </View>
-  );
-}
-
-export function StatCard({ label, value, helper, success, danger }) {
-  return (
-    <Card style={styles.statCard}>
-      <Text style={styles.statLabel}>{label}</Text>
-      <Text
-        style={[
-          styles.statValue,
-          success ? { color: '#16a34a' } : null,
-          danger ? { color: '#dc2626' } : null,
-        ]}
-      >
-        {value}
-      </Text>
-      {helper ? <Text style={styles.statHelper}>{helper}</Text> : null}
+    <Card style={styles.emptyWrap}>
+      <View style={styles.emptyIcon}>
+        <Ionicons name="sparkles-outline" size={24} color={theme.colors.primary} />
+      </View>
+      <Text style={styles.emptyTitle}>{title}</Text>
+      <Text style={styles.emptyText}>{message}</Text>
     </Card>
+  );
+}
+
+export function StatusChip({ label, tone = 'neutral' }) {
+  const toneMap = {
+    neutral: { bg: 'rgba(148,163,184,0.18)', fg: theme.colors.muted },
+    success: { bg: 'rgba(34,197,94,0.18)', fg: '#7ff0a3' },
+    warning: { bg: 'rgba(245,158,11,0.22)', fg: '#ffd375' },
+    danger: { bg: 'rgba(239,68,68,0.18)', fg: '#ff9b9b' },
+    info: { bg: 'rgba(79,140,255,0.2)', fg: '#9dc2ff' },
+  };
+  const selected = toneMap[tone] || toneMap.neutral;
+  return (
+    <View style={[styles.chip, { backgroundColor: selected.bg }]}>
+      <Text style={[styles.chipText, { color: selected.fg }]}>{label}</Text>
+    </View>
   );
 }
 
@@ -104,233 +223,361 @@ export function ListRow({ title, subtitle, trailing, footer }) {
         </View>
         {trailing}
       </View>
-      {footer}
+      {footer ? <View style={{ marginTop: 2 }}>{footer}</View> : null}
     </Card>
   );
 }
 
-export function EmptyState({ title, message }) {
+export function BottomNav({ tabs, activeTab, onChange, bottomInset = 0 }) {
   return (
-    <Card style={{ alignItems: 'center', gap: 8 }}>
-      <Ionicons name="folder-open-outline" size={32} color="#94a3b8" />
-      <Text style={styles.emptyTitle}>{title}</Text>
-      <Text style={styles.emptyText}>{message}</Text>
-    </Card>
-  );
-}
-
-export function SheetModal({ visible, title, children, onClose }) {
-  return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalSheet}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{title}</Text>
-            <Pressable onPress={onClose}>
-              <Ionicons name="close" size={22} color="#334155" />
+    <View style={[styles.bottomNavWrap, { paddingBottom: Math.max(bottomInset, 8) }]}>
+      <LinearGradient colors={['rgba(10,16,30,0.96)', 'rgba(10,16,30,0.88)']} style={styles.bottomNav}>
+        {tabs.map((tab) => {
+          const active = tab.key === activeTab;
+          return (
+            <Pressable
+              key={tab.key}
+              onPress={() => onChange(tab.key)}
+              style={({ pressed }) => [
+                styles.bottomNavItem,
+                active ? styles.bottomNavItemActive : null,
+                { opacity: pressed ? 0.88 : 1 },
+              ]}
+            >
+              <Ionicons
+                name={tab.icon}
+                size={19}
+                color={active ? theme.colors.textStrong : theme.colors.muted}
+              />
+              <Text style={[styles.bottomNavLabel, active ? styles.bottomNavLabelActive : null]}>
+                {tab.label}
+              </Text>
             </Pressable>
-          </View>
-          <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>{children}</ScrollView>
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
-export function TabBar({ tabs, activeTab, onChange }) {
-  return (
-    <View style={styles.tabBar}>
-      {tabs.map((tab) => {
-        const active = tab.key === activeTab;
-        return (
-          <Pressable
-            key={tab.key}
-            onPress={() => onChange(tab.key)}
-            style={[styles.tabItem, active ? styles.tabItemActive : null]}
-          >
-            <Ionicons name={tab.icon} size={18} color={active ? '#2563eb' : '#64748b'} />
-            <Text style={[styles.tabLabel, active ? styles.tabLabelActive : null]}>{tab.label}</Text>
-          </Pressable>
-        );
-      })}
+          );
+        })}
+      </LinearGradient>
     </View>
   );
 }
 
+export const uiStyles = StyleSheet.create({
+  rowWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.md,
+  },
+  metricWrap: {
+    flex: 1,
+    minWidth: 145,
+  },
+});
+
 const styles = StyleSheet.create({
+  screenRoot: {
+    flex: 1,
+  },
   screenContent: {
-    padding: 16,
-    gap: 14,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.md,
     paddingBottom: 120,
+    gap: theme.spacing.lg,
   },
-  header: {
-    gap: 2,
+  appHeader: {
+    borderRadius: theme.radius.xl,
+    padding: theme.spacing.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.stroke,
+    overflow: 'hidden',
   },
-  title: {
-    fontSize: 24,
+  headerEyebrow: {
+    color: '#89afff',
+    fontSize: 11,
     fontWeight: '900',
-    color: '#0f172a',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 6,
   },
-  subtitle: {
+  headerTitle: {
+    color: theme.colors.textStrong,
+    fontSize: 27,
+    fontWeight: '900',
+  },
+  headerSubtitle: {
+    color: theme.colors.muted,
     fontSize: 13,
-    color: '#64748b',
+    lineHeight: 19,
+    marginTop: 6,
   },
-  sectionWrap: {
-    gap: 2,
+  sectionRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.md,
+    alignItems: 'center',
   },
   sectionTitle: {
-    fontSize: 17,
-    fontWeight: '900',
-    color: '#0f172a',
+    color: theme.colors.textStrong,
+    fontSize: 18,
+    fontWeight: '800',
   },
   sectionSubtitle: {
+    color: theme.colors.muted,
     fontSize: 12,
-    color: '#64748b',
+    marginTop: 3,
+    lineHeight: 17,
+  },
+  sectionAction: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: theme.radius.pill,
+    backgroundColor: 'rgba(79,140,255,0.14)',
+  },
+  sectionActionText: {
+    color: '#a4c4ff',
+    fontSize: 12,
+    fontWeight: '800',
   },
   card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 18,
-    padding: 16,
-    gap: 10,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.md,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: theme.colors.stroke,
+    shadowColor: theme.colors.shadow,
+    shadowOpacity: 0.24,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 8,
+    gap: theme.spacing.sm,
   },
-  fieldWrap: {
-    gap: 6,
+  metricCard: {
+    minHeight: 114,
+    flex: 1,
+    minWidth: 145,
   },
-  fieldLabel: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#334155',
+  metricOrb: {
+    width: 38,
+    height: 38,
+    borderRadius: 16,
+    marginBottom: 4,
   },
-  input: {
-    backgroundColor: '#f8fafc',
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    color: '#0f172a',
-    fontSize: 15,
+  metricLabel: {
+    color: theme.colors.muted,
+    fontSize: 12,
+    fontWeight: '700',
   },
-  multiline: {
-    minHeight: 90,
-    textAlignVertical: 'top',
+  metricValue: {
+    color: theme.colors.textStrong,
+    fontSize: 23,
+    fontWeight: '900',
   },
-  button: {
-    minHeight: 46,
-    borderRadius: 14,
+  metricHelper: {
+    color: theme.colors.mutedSoft,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  actionButton: {
+    minHeight: 48,
+    borderRadius: theme.radius.md,
+    paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 8,
-    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
-  buttonText: {
+  actionButtonCompact: {
+    minHeight: 40,
+    paddingHorizontal: 12,
+  },
+  actionButtonText: {
+    color: theme.colors.textStrong,
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  fabWrap: {
+    position: 'absolute',
+    right: theme.spacing.lg,
+    bottom: 22,
+  },
+  fab: {
+    minHeight: 56,
+    borderRadius: theme.radius.pill,
+    paddingHorizontal: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    shadowColor: '#2f6df2',
+    shadowOpacity: 0.42,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 10,
+  },
+  fabText: {
+    color: theme.colors.textStrong,
     fontSize: 14,
     fontWeight: '900',
   },
-  badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
+  fieldWrap: {
+    gap: 7,
   },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: '900',
+  fieldLabel: {
+    color: theme.colors.text,
+    fontSize: 13,
+    fontWeight: '700',
   },
-  statCard: {
-    minWidth: 150,
-    flex: 1,
-  },
-  statLabel: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#64748b',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  statValue: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#0f172a',
-  },
-  statHelper: {
-    fontSize: 12,
-    color: '#64748b',
-  },
-  listTop: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  listTitle: {
+  input: {
+    backgroundColor: theme.colors.input,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.strokeStrong,
+    paddingHorizontal: 14,
+    paddingVertical: Platform.OS === 'ios' ? 13 : 11,
+    color: theme.colors.textStrong,
     fontSize: 15,
-    fontWeight: '900',
-    color: '#0f172a',
   },
-  listSubtitle: {
-    fontSize: 13,
-    color: '#64748b',
-    marginTop: 2,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#0f172a',
-  },
-  emptyText: {
-    fontSize: 13,
-    color: '#64748b',
-    textAlign: 'center',
-    lineHeight: 18,
+  inputMultiline: {
+    minHeight: 100,
+    textAlignVertical: 'top',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+    backgroundColor: theme.colors.overlay,
     justifyContent: 'flex-end',
   },
   modalSheet: {
-    maxHeight: '90%',
-    backgroundColor: '#f8fafc',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 18,
-    paddingTop: 16,
+    maxHeight: '92%',
+  },
+  modalInner: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: theme.colors.stroke,
+    overflow: 'hidden',
+  },
+  modalHandle: {
+    width: 54,
+    height: 5,
+    borderRadius: theme.radius.pill,
+    backgroundColor: 'rgba(148,163,184,0.45)',
+    alignSelf: 'center',
+    marginTop: 12,
   },
   modalHeader: {
     flexDirection: 'row',
+    gap: theme.spacing.md,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.md,
   },
   modalTitle: {
-    fontSize: 18,
+    color: theme.colors.textStrong,
+    fontSize: 20,
     fontWeight: '900',
-    color: '#0f172a',
   },
-  tabBar: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 12,
+  modalSubtitle: {
+    color: theme.colors.muted,
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 4,
   },
-  tabItem: {
-    minWidth: 80,
-    borderRadius: 16,
+  iconButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 14,
+    backgroundColor: 'rgba(148,163,184,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 3,
   },
-  tabItemActive: {
-    backgroundColor: '#eff6ff',
+  modalContent: {
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.lg,
+    paddingBottom: 26,
+    gap: theme.spacing.md,
   },
-  tabLabel: {
+  emptyWrap: {
+    alignItems: 'center',
+    paddingVertical: theme.spacing.xl,
+  },
+  emptyIcon: {
+    width: 54,
+    height: 54,
+    borderRadius: 18,
+    backgroundColor: 'rgba(79,140,255,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyTitle: {
+    color: theme.colors.textStrong,
+    fontSize: 17,
+    fontWeight: '900',
+  },
+  emptyText: {
+    color: theme.colors.muted,
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: 'center',
+  },
+  chip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: theme.radius.pill,
+  },
+  chipText: {
     fontSize: 11,
-    fontWeight: '800',
-    color: '#64748b',
+    fontWeight: '900',
   },
-  tabLabelActive: {
-    color: '#2563eb',
+  listTop: {
+    flexDirection: 'row',
+    gap: theme.spacing.md,
+    alignItems: 'flex-start',
+  },
+  listTitle: {
+    color: theme.colors.textStrong,
+    fontSize: 15,
+    fontWeight: '800',
+    lineHeight: 20,
+  },
+  listSubtitle: {
+    color: theme.colors.muted,
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 4,
+  },
+  bottomNavWrap: {
+    backgroundColor: 'transparent',
+    paddingHorizontal: 12,
+    paddingTop: 6,
+  },
+  bottomNav: {
+    flexDirection: 'row',
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: theme.colors.stroke,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    gap: 6,
+  },
+  bottomNavItem: {
+    flex: 1,
+    minWidth: 64,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  bottomNavItemActive: {
+    backgroundColor: 'rgba(79,140,255,0.18)',
+  },
+  bottomNavLabel: {
+    color: theme.colors.muted,
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  bottomNavLabelActive: {
+    color: theme.colors.textStrong,
   },
 });

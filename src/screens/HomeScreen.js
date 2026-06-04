@@ -1,43 +1,66 @@
 import React from 'react';
 import { View } from 'react-native';
-import { Card, Screen, SectionTitle, StatCard } from '../components/UI';
+import {
+  ActionButton,
+  Card,
+  MetricCard,
+  Screen,
+  SectionTitle,
+  StatusChip,
+  uiStyles,
+} from '../components/UI';
 import { money } from '../utils/format';
+import { theme } from '../theme';
 
-export function HomeScreen({ snapshot }) {
+export function HomeScreen({ snapshot, navigate }) {
   const home = snapshot.home || {};
 
   return (
     <Screen
       title="Inicio"
-      subtitle="Resumen general de ventas, caja, inventario y cartera en modo offline."
+      subtitle="Dashboard compacto para caja, ventas, cartera e inventario."
     >
-      <SectionTitle title="Resumen principal" />
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-        <StatCard label="Total vendido" value={money(home.totalSold || 0)} />
-        <StatCard label="Total ingresado" value={money(home.totalIncome || 0)} success />
-        <StatCard label="Total de gastos" value={money(home.totalExpense || 0)} danger />
-        <StatCard
+      <View style={uiStyles.rowWrap}>
+        <MetricCard label="Total vendido" value={money(home.totalSold || 0)} />
+        <MetricCard label="Ingresos" value={money(home.totalIncome || 0)} tone="success" />
+        <MetricCard label="Gastos" value={money(home.totalExpense || 0)} tone="danger" />
+        <MetricCard
           label="Balance"
           value={money(home.balance || 0)}
-          success={(home.balance || 0) >= 0}
-          danger={(home.balance || 0) < 0}
+          tone={(home.balance || 0) >= 0 ? 'primary' : 'warning'}
         />
-        <StatCard label="Pendiente por cobrar" value={money(home.pendingMoney || 0)} />
-        <StatCard label="Valor inventario" value={money(home.inventoryValue || 0)} />
-        <StatCard label="Cotizaciones pendientes" value={String(home.pendingQuotes || 0)} />
-        <StatCard label="Ventas del mes" value={money(home.salesThisMonth || 0)} />
+        <MetricCard label="Pendiente" value={money(home.pendingMoney || 0)} tone="warning" />
+        <MetricCard label="Inventario" value={money(home.inventoryValue || 0)} />
+        <MetricCard label="Cotiz. pendientes" value={String(home.pendingQuotes || 0)} />
+        <MetricCard label="Ventas del mes" value={money(home.salesThisMonth || 0)} />
       </View>
 
-      <SectionTitle title="Observaciones del día" />
+      <SectionTitle title="Acciones rapidas" subtitle="Navega directo a las tareas mas usadas." />
+      <View style={uiStyles.rowWrap}>
+        <View style={{ flex: 1, minWidth: 145 }}>
+          <ActionButton label="Nueva cotiz." icon="add-circle-outline" onPress={() => navigate('quotes', 'create')} />
+        </View>
+        <View style={{ flex: 1, minWidth: 145 }}>
+          <ActionButton label="Nuevo cliente" icon="person-add-outline" onPress={() => navigate('customers', 'create')} tone="secondary" />
+        </View>
+        <View style={{ flex: 1, minWidth: 145 }}>
+          <ActionButton label="Movimiento" icon="swap-horizontal-outline" onPress={() => navigate('movements', 'create')} tone="secondary" />
+        </View>
+        <View style={{ flex: 1, minWidth: 145 }}>
+          <ActionButton label="Inventario" icon="cube-outline" onPress={() => navigate('inventory', 'create-item')} tone="secondary" />
+        </View>
+      </View>
+
+      <SectionTitle title="Pulso del negocio" subtitle="Alertas suaves para revisar sin saturarte." />
       <Card>
-        <SectionTitle
-          title={`Bajo stock: ${home.lowStockItems || 0}`}
-          subtitle="Revisa la pestaña Inventario para registrar entradas, salidas o ajustes."
-        />
-        <SectionTitle
-          title={`Cartera abierta: ${money(home.pendingMoney || 0)}`}
-          subtitle="Los abonos registrados reducen el saldo y completan ventas pendientes."
-        />
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: theme.spacing.md }}>
+          <View style={{ flex: 1 }}>
+            <StatusChip label={`Bajo stock: ${home.lowStockItems || 0}`} tone={(home.lowStockItems || 0) > 0 ? 'warning' : 'success'} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <StatusChip label={`Pendiente: ${money(home.pendingMoney || 0)}`} tone={(home.pendingMoney || 0) > 0 ? 'warning' : 'info'} />
+          </View>
+        </View>
       </Card>
     </Screen>
   );

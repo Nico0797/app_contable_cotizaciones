@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, StyleSheet, Text, View } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { initializeDatabase } from './db/database';
 import {
@@ -13,7 +16,7 @@ import {
   listSales,
   listTransactions,
 } from './db/repository';
-import { TabBar } from './components/UI';
+import { BottomNav } from './components/UI';
 import { HomeScreen } from './screens/HomeScreen';
 import { QuotesScreen } from './screens/QuotesScreen';
 import { SalesScreen } from './screens/SalesScreen';
@@ -21,21 +24,34 @@ import { CustomersScreen } from './screens/CustomersScreen';
 import { InventoryScreen } from './screens/InventoryScreen';
 import { MovementsScreen } from './screens/MovementsScreen';
 import { LedgerScreen } from './screens/LedgerScreen';
+import { MoreScreen } from './screens/MoreScreen';
+import { theme } from './theme';
 
-const TABS = [
+const MAIN_TABS = [
   { key: 'home', label: 'Inicio', icon: 'home-outline' },
   { key: 'quotes', label: 'Cotiz.', icon: 'document-text-outline' },
   { key: 'sales', label: 'Ventas', icon: 'receipt-outline' },
-  { key: 'customers', label: 'Clientes', icon: 'people-outline' },
   { key: 'inventory', label: 'Invent.', icon: 'cube-outline' },
-  { key: 'movements', label: 'Movs', icon: 'swap-horizontal-outline' },
-  { key: 'ledger', label: 'Cartera', icon: 'wallet-outline' },
+  { key: 'more', label: 'Mas', icon: 'ellipsis-horizontal-circle-outline' },
 ];
 
+const HIDDEN_ROUTES = ['customers', 'movements', 'ledger', 'settings'];
+
 export function AppShell() {
+  return (
+    <SafeAreaProvider>
+      <StatusBar style="light" translucent backgroundColor="transparent" />
+      <AppShellInner />
+    </SafeAreaProvider>
+  );
+}
+
+function AppShellInner() {
+  const insets = useSafeAreaInsets();
   const [ready, setReady] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [activeTab, setActiveTab] = useState('home');
+  const [currentRoute, setCurrentRoute] = useState('home');
+  const [command, setCommand] = useState(null);
   const [snapshot, setSnapshot] = useState({
     home: null,
     customers: [],
@@ -91,137 +107,130 @@ export function AppShell() {
         await refreshAll();
         setReady(true);
       } catch (error) {
-        setErrorMessage(error?.message || 'No se pudo iniciar la aplicación.');
+        setErrorMessage(error?.message || 'No se pudo iniciar la aplicacion.');
       }
     })();
   }, []);
 
-  const onDataChanged = async (nextTab) => {
+  const navigate = (route, action = null, payload = null) => {
+    setCurrentRoute(route);
+    if (action) {
+      setCommand({ route, action, payload, token: Date.now() });
+    }
+  };
+
+  const onDataChanged = async (nextRoute, nextAction = null, payload = null) => {
     try {
       await refreshAll();
-      if (nextTab) {
-        setActiveTab(nextTab);
+      if (nextRoute) {
+        navigate(nextRoute, nextAction, payload);
       }
     } catch (error) {
-      Alert.alert('Error', error?.message || 'No se pudo actualizar la información.');
+      Alert.alert('Error', error?.message || 'No se pudo actualizar la informacion.');
     }
   };
 
   if (errorMessage) {
     return (
-      <SafeAreaView style={styles.centered}>
-        <Ionicons name="alert-circle-outline" size={48} color="#dc2626" />
-        <Text style={styles.errorTitle}>Error de inicio</Text>
-        <Text style={styles.errorText}>{errorMessage}</Text>
-      </SafeAreaView>
+      <LinearGradient colors={theme.gradients.screen} style={styles.errorRoot}>
+        <SafeAreaView style={styles.centered} edges={['top', 'bottom']}>
+          <View style={styles.errorIcon}>
+            <Ionicons name="alert-circle-outline" size={34} color={theme.colors.danger} />
+          </View>
+          <Text style={styles.errorTitle}>No se pudo abrir la app</Text>
+          <Text style={styles.errorText}>{errorMessage}</Text>
+        </SafeAreaView>
+      </LinearGradient>
     );
   }
 
   if (!ready) {
     return (
-      <SafeAreaView style={styles.centered}>
-        <ActivityIndicator size="large" color="#2563eb" />
-        <Text style={styles.loadingText}>Preparando app offline...</Text>
-      </SafeAreaView>
+      <LinearGradient colors={theme.gradients.screen} style={styles.errorRoot}>
+        <SafeAreaView style={styles.centered} edges={['top', 'bottom']}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={styles.loadingText}>Preparando la app offline...</Text>
+        </SafeAreaView>
+      </LinearGradient>
     );
   }
 
   let CurrentScreen = HomeScreen;
-  if (activeTab === 'quotes') CurrentScreen = QuotesScreen;
-  if (activeTab === 'sales') CurrentScreen = SalesScreen;
-  if (activeTab === 'customers') CurrentScreen = CustomersScreen;
-  if (activeTab === 'inventory') CurrentScreen = InventoryScreen;
-  if (activeTab === 'movements') CurrentScreen = MovementsScreen;
-  if (activeTab === 'ledger') CurrentScreen = LedgerScreen;
+  if (currentRoute === 'quotes') CurrentScreen = QuotesScreen;
+  if (currentRoute === 'sales') CurrentScreen = SalesScreen;
+  if (currentRoute === 'inventory') CurrentScreen = InventoryScreen;
+  if (currentRoute === 'customers') CurrentScreen = CustomersScreen;
+  if (currentRoute === 'movements') CurrentScreen = MovementsScreen;
+  if (currentRoute === 'ledger') CurrentScreen = LedgerScreen;
+  if (currentRoute === 'more') CurrentScreen = MoreScreen;
+
+  const activeBottomTab = HIDDEN_ROUTES.includes(currentRoute) ? 'more' : currentRoute;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.eyebrow}>Offline · SQLite local</Text>
-        <Text style={styles.title}>App Contable Cotizaciones</Text>
-        <Text style={styles.subtitle}>
-          Sin backend, sin WebView, sin internet obligatoria.
-        </Text>
-      </View>
+    <LinearGradient colors={theme.gradients.screen} style={styles.root}>
+      <SafeAreaView style={styles.safeRoot} edges={['top']}>
+        <View style={styles.body}>
+          <CurrentScreen
+            snapshot={snapshot}
+            navigate={navigate}
+            command={command}
+            onDataChanged={onDataChanged}
+          />
+        </View>
 
-      <View style={styles.body}>
-        <CurrentScreen
-          snapshot={snapshot}
-          onDataChanged={onDataChanged}
-          openTab={setActiveTab}
-        />
-      </View>
-
-      <View style={styles.footer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <TabBar tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
-        </ScrollView>
-      </View>
-    </SafeAreaView>
+        <View style={[styles.bottomWrap, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+          <BottomNav tabs={MAIN_TABS} activeTab={activeBottomTab} onChange={(tab) => navigate(tab)} bottomInset={0} />
+        </View>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
-    backgroundColor: '#f8fafc',
   },
-  header: {
-    paddingHorizontal: 18,
-    paddingTop: 12,
-    paddingBottom: 10,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-  },
-  eyebrow: {
-    fontSize: 11,
-    fontWeight: '900',
-    color: '#2563eb',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#0f172a',
-    marginTop: 2,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: '#64748b',
-    marginTop: 3,
+  safeRoot: {
+    flex: 1,
   },
   body: {
     flex: 1,
   },
-  footer: {
-    backgroundColor: '#ffffff',
-    borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
-    paddingVertical: 8,
+  bottomWrap: {
+    paddingHorizontal: 8,
+    backgroundColor: 'transparent',
+  },
+  errorRoot: {
+    flex: 1,
   },
   centered: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f8fafc',
     padding: 24,
-    gap: 12,
+    gap: 14,
   },
-  loadingText: {
-    color: '#475569',
-    fontSize: 15,
+  errorIcon: {
+    width: 66,
+    height: 66,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(239,68,68,0.14)',
   },
   errorTitle: {
-    color: '#0f172a',
-    fontSize: 20,
+    color: theme.colors.textStrong,
+    fontSize: 22,
     fontWeight: '900',
   },
   errorText: {
-    color: '#64748b',
+    color: theme.colors.muted,
     fontSize: 14,
-    textAlign: 'center',
     lineHeight: 20,
+    textAlign: 'center',
+  },
+  loadingText: {
+    color: theme.colors.muted,
+    fontSize: 15,
   },
 });

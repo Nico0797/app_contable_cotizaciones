@@ -4,7 +4,7 @@
     "slug": "app-contable-cotizaciones",
     "version": "1.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "android": {
       "package": "com.nico0797.appcontablecotizaciones",
       "versionCode": 1,

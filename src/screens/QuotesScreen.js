@@ -1,14 +1,31 @@
-import React, { useMemo, useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
-import { Badge, Button, EmptyState, Field, ListRow, Screen, SectionTitle, SheetModal } from '../components/UI';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Alert, Text, View } from 'react-native';
+import {
+  ActionButton,
+  AppInput,
+  AppModal,
+  EmptyState,
+  FloatingButton,
+  ListRow,
+  MetricCard,
+  Screen,
+  SectionTitle,
+  StatusChip,
+  uiStyles,
+} from '../components/UI';
 import { confirmQuoteAsSale, createQuote, getQuoteDetail, rejectQuote } from '../db/repository';
 import { money, shortDate } from '../utils/format';
+import { theme } from '../theme';
 
 const EMPTY_ITEM = { description: '', qty: '1', unit_price: '' };
 
-export function QuotesScreen({ snapshot, onDataChanged, openTab }) {
+export function QuotesScreen({ snapshot, onDataChanged, navigate, command }) {
   const customers = useMemo(() => snapshot.customers || [], [snapshot.customers]);
   const quotes = useMemo(() => snapshot.quotes || [], [snapshot.quotes]);
+  const [wizardVisible, setWizardVisible] = useState(false);
+  const [step, setStep] = useState(1);
+  const [detailVisible, setDetailVisible] = useState(false);
+  const [detailQuote, setDetailQuote] = useState(null);
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [manualCustomerName, setManualCustomerName] = useState('');
   const [quoteDate, setQuoteDate] = useState(new Date().toISOString().slice(0, 10));
@@ -16,28 +33,42 @@ export function QuotesScreen({ snapshot, onDataChanged, openTab }) {
   const [discount, setDiscount] = useState('0');
   const [itemDraft, setItemDraft] = useState(EMPTY_ITEM);
   const [items, setItems] = useState([]);
-  const [detailVisible, setDetailVisible] = useState(false);
-  const [detailQuote, setDetailQuote] = useState(null);
+
+  useEffect(() => {
+    if (command?.route === 'quotes' && command?.action === 'create') {
+      setWizardVisible(true);
+      setStep(1);
+    }
+  }, [command]);
 
   const subtotal = items.reduce((sum, item) => sum + Number(item.total || 0), 0);
   const total = Math.max(0, subtotal - Number(discount || 0));
+  const pendingCount = quotes.filter((quote) => quote.status === 'draft').length;
+  const convertedCount = quotes.filter((quote) => quote.status === 'converted').length;
+  const totalQuoted = quotes.reduce((sum, quote) => sum + Number(quote.total || 0), 0);
+
+  const resetWizard = () => {
+    setStep(1);
+    setSelectedCustomerId('');
+    setManualCustomerName('');
+    setQuoteDate(new Date().toISOString().slice(0, 10));
+    setNote('');
+    setDiscount('0');
+    setItemDraft(EMPTY_ITEM);
+    setItems([]);
+  };
 
   const addItem = () => {
     const description = itemDraft.description.trim();
     const qty = Number(itemDraft.qty || 0);
     const unitPrice = Number(itemDraft.unit_price || 0);
     if (!description || qty <= 0 || unitPrice < 0) {
-      Alert.alert('Revisa', 'Cada ítem necesita descripción, cantidad y precio válidos.');
+      Alert.alert('Revisa', 'Cada item necesita descripcion, cantidad y precio validos.');
       return;
     }
     setItems((current) => [
       ...current,
-      {
-        description,
-        qty,
-        unit_price: unitPrice,
-        total: qty * unitPrice,
-      },
+      { description, qty, unit_price: unitPrice, total: qty * unitPrice },
     ]);
     setItemDraft(EMPTY_ITEM);
   };
@@ -52,17 +83,12 @@ export function QuotesScreen({ snapshot, onDataChanged, openTab }) {
         discount,
         items,
       });
-      setSelectedCustomerId('');
-      setManualCustomerName('');
-      setQuoteDate(new Date().toISOString().slice(0, 10));
-      setNote('');
-      setDiscount('0');
-      setItemDraft(EMPTY_ITEM);
-      setItems([]);
+      resetWizard();
+      setWizardVisible(false);
       await onDataChanged();
-      Alert.alert('Listo', 'Cotización guardada como borrador.');
+      Alert.alert('Listo', 'Cotizacion guardada como borrador.');
     } catch (error) {
-      Alert.alert('Error', error?.message || 'No se pudo guardar la cotización.');
+      Alert.alert('Error', error?.message || 'No se pudo guardar la cotizacion.');
     }
   };
 
@@ -77,7 +103,7 @@ export function QuotesScreen({ snapshot, onDataChanged, openTab }) {
   };
 
   const confirmQuote = (quote) => {
-    Alert.alert('Confirmar cotización', '¿La venta quedó pagada o pendiente?', [
+    Alert.alert('Confirmar cotizacion', 'La venta quedo pagada o pendiente?', [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Pendiente',
@@ -88,10 +114,9 @@ export function QuotesScreen({ snapshot, onDataChanged, openTab }) {
               sale_date: new Date().toISOString().slice(0, 10),
             });
             await onDataChanged('sales');
-            openTab('sales');
-            Alert.alert('Listo', 'Cotización confirmada como venta pendiente.');
+            Alert.alert('Listo', 'Cotizacion convertida en venta pendiente.');
           } catch (error) {
-            Alert.alert('Error', error?.message || 'No se pudo confirmar la cotización.');
+            Alert.alert('Error', error?.message || 'No se pudo confirmar la cotizacion.');
           }
         },
       },
@@ -104,10 +129,9 @@ export function QuotesScreen({ snapshot, onDataChanged, openTab }) {
               sale_date: new Date().toISOString().slice(0, 10),
             });
             await onDataChanged('sales');
-            openTab('sales');
-            Alert.alert('Listo', 'Cotización confirmada como venta pagada.');
+            Alert.alert('Listo', 'Cotizacion convertida en venta pagada.');
           } catch (error) {
-            Alert.alert('Error', error?.message || 'No se pudo confirmar la cotización.');
+            Alert.alert('Error', error?.message || 'No se pudo confirmar la cotizacion.');
           }
         },
       },
@@ -118,9 +142,9 @@ export function QuotesScreen({ snapshot, onDataChanged, openTab }) {
     try {
       await rejectQuote(quoteId);
       await onDataChanged();
-      Alert.alert('Listo', 'Cotización marcada como rechazada.');
+      Alert.alert('Listo', 'Cotizacion rechazada.');
     } catch (error) {
-      Alert.alert('Error', error?.message || 'No se pudo rechazar la cotización.');
+      Alert.alert('Error', error?.message || 'No se pudo rechazar la cotizacion.');
     }
   };
 
@@ -128,137 +152,165 @@ export function QuotesScreen({ snapshot, onDataChanged, openTab }) {
     <>
       <Screen
         title="Cotizaciones"
-        subtitle="Flujo principal: crear, confirmar y convertir en venta."
+        subtitle="Lista limpia, resumen corto y formulario por pasos en modal."
+        floatingAction={<FloatingButton label="Nueva cotiz." icon="add" onPress={() => setWizardVisible(true)} />}
       >
-        <SectionTitle title="Nueva cotización" />
-        <Field
-          label="Fecha"
-          value={quoteDate}
-          onChangeText={setQuoteDate}
-          placeholder="YYYY-MM-DD"
-        />
-
-        <SectionTitle title="Cliente existente" subtitle="Opcional. Toca un chip para elegir." />
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-          {customers.map((customer) => {
-            const active = selectedCustomerId === String(customer.id);
-            return (
-              <Pressable
-                key={customer.id}
-                onPress={() => setSelectedCustomerId(active ? '' : String(customer.id))}
-                style={{
-                  paddingHorizontal: 12,
-                  paddingVertical: 8,
-                  borderRadius: 999,
-                  backgroundColor: active ? '#2563eb' : '#ffffff',
-                  borderWidth: 1,
-                  borderColor: active ? '#2563eb' : '#cbd5e1',
-                }}
-              >
-                <Text style={{ color: active ? '#ffffff' : '#0f172a', fontWeight: '800', fontSize: 12 }}>
-                  {customer.name}
-                </Text>
-              </Pressable>
-            );
-          })}
+        <View style={uiStyles.rowWrap}>
+          <MetricCard label="Pendientes" value={String(pendingCount)} tone="warning" />
+          <MetricCard label="Convertidas" value={String(convertedCount)} tone="success" />
+          <MetricCard label="Total cotizado" value={money(totalQuoted)} />
         </View>
 
-        <Field
-          label="Nombre manual"
-          value={manualCustomerName}
-          onChangeText={setManualCustomerName}
-          placeholder="Si no eliges cliente, escribe el nombre manualmente"
-        />
-        <Field label="Nota" value={note} onChangeText={setNote} placeholder="Observaciones" multiline />
-
-        <SectionTitle title="Agregar ítems" />
-        <Field
-          label="Descripción"
-          value={itemDraft.description}
-          onChangeText={(value) => setItemDraft((current) => ({ ...current, description: value }))}
-          placeholder="Descripción del servicio o concepto"
-        />
-        <Field
-          label="Cantidad"
-          value={itemDraft.qty}
-          onChangeText={(value) => setItemDraft((current) => ({ ...current, qty: value }))}
-          placeholder="1"
-          keyboardType="numeric"
-        />
-        <Field
-          label="Precio unitario"
-          value={itemDraft.unit_price}
-          onChangeText={(value) => setItemDraft((current) => ({ ...current, unit_price: value }))}
-          placeholder="0"
-          keyboardType="numeric"
-        />
-        <Button label="Agregar ítem" onPress={addItem} icon="add-outline" />
-
-        {items.map((item, index) => (
-          <ListRow
-            key={`${item.description}-${index}`}
-            title={item.description}
-            subtitle={`${item.qty} x ${money(item.unit_price)}`}
-            trailing={<Text style={{ color: '#0f172a', fontSize: 14, fontWeight: '900' }}>{money(item.total)}</Text>}
-            footer={
-              <Button
-                label="Eliminar ítem"
-                onPress={() => setItems((current) => current.filter((_, i) => i !== index))}
-                variant="secondary"
-                icon="trash-outline"
-              />
-            }
-          />
-        ))}
-
-        <Field
-          label="Descuento"
-          value={discount}
-          onChangeText={setDiscount}
-          placeholder="0"
-          keyboardType="numeric"
-        />
-
-        <ListRow
-          title={`Subtotal: ${money(subtotal)}`}
-          subtitle={`Total final: ${money(total)}`}
-          footer={<Button label="Guardar cotización" onPress={saveQuote} icon="save-outline" />}
-        />
-
-        <SectionTitle title="Historial" subtitle="Estados draft, converted y rejected." />
+        <SectionTitle title="Historial" subtitle="Draft, converted y rejected con acciones claras." />
         {quotes.length === 0 ? (
-          <EmptyState title="Sin cotizaciones" message="Crea la primera cotización para iniciar el flujo." />
+          <EmptyState title="Sin cotizaciones" message="Crea la primera para activar el flujo comercial." />
         ) : (
-          quotes.map((quote) => (
-            <ListRow
-              key={quote.id}
-              title={`${quote.quote_number} · ${quote.customer_name || 'Sin cliente'}`}
-              subtitle={`${shortDate(quote.quote_date)} · ${money(quote.total)}`}
-              trailing={
-                <Badge
-                  label={quote.status}
-                  tone={quote.status === 'converted' ? 'success' : quote.status === 'rejected' ? 'danger' : 'info'}
-                />
-              }
-              footer={
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                  <Button label="Ver" onPress={() => openDetail(quote.id)} variant="secondary" />
-                  {quote.status === 'draft' ? (
-                    <>
-                      <Button label="Confirmar" onPress={() => confirmQuote(quote)} />
-                      <Button label="Rechazar" onPress={() => rejectCurrentQuote(quote.id)} variant="danger" />
-                    </>
-                  ) : null}
-                </View>
-              }
-            />
-          ))
+          <View style={{ gap: 12 }}>
+            {quotes.map((quote) => (
+              <ListRow
+                key={quote.id}
+                title={`${quote.quote_number} · ${quote.customer_name || 'Sin cliente'}`}
+                subtitle={`${shortDate(quote.quote_date)} · ${money(quote.total)}`}
+                trailing={
+                  <StatusChip
+                    label={quote.status}
+                    tone={quote.status === 'converted' ? 'success' : quote.status === 'rejected' ? 'danger' : 'warning'}
+                  />
+                }
+                footer={
+                  <View style={{ gap: 10 }}>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                      <ActionButton label="Ver" icon="eye-outline" onPress={() => openDetail(quote.id)} tone="secondary" compact />
+                      {quote.status === 'draft' ? (
+                        <>
+                          <ActionButton label="Confirmar venta" icon="sparkles-outline" onPress={() => confirmQuote(quote)} compact />
+                          <ActionButton label="Rechazar" icon="close-circle-outline" onPress={() => rejectCurrentQuote(quote.id)} tone="warning" compact />
+                        </>
+                      ) : null}
+                    </View>
+                  </View>
+                }
+              />
+            ))}
+          </View>
         )}
       </Screen>
 
-      <SheetModal
+      <AppModal
+        visible={wizardVisible}
+        title="Nueva cotizacion"
+        subtitle={`Paso ${step} de 3`}
+        onClose={() => {
+          setWizardVisible(false);
+          resetWizard();
+        }}
+      >
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {[1, 2, 3].map((index) => (
+            <View
+              key={index}
+              style={{
+                flex: 1,
+                height: 4,
+                borderRadius: theme.radius.pill,
+                backgroundColor: index <= step ? theme.colors.primary : 'rgba(148,163,184,0.18)',
+              }}
+            />
+          ))}
+        </View>
+
+        {step === 1 ? (
+          <View style={{ gap: 12 }}>
+            <SectionTitle title="Cliente y nota" subtitle="Elige cliente existente o usa nombre manual." />
+            <AppInput label="Fecha" value={quoteDate} onChangeText={setQuoteDate} placeholder="YYYY-MM-DD" />
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {customers.map((customer) => {
+                const active = selectedCustomerId === String(customer.id);
+                return (
+                  <ActionButton
+                    key={customer.id}
+                    label={customer.name}
+                    onPress={() => setSelectedCustomerId(active ? '' : String(customer.id))}
+                    tone={active ? 'primary' : 'secondary'}
+                    compact
+                  />
+                );
+              })}
+            </View>
+            <AppInput label="Nombre manual" value={manualCustomerName} onChangeText={setManualCustomerName} placeholder="Si no eliges cliente, escribe el nombre aqui" />
+            <AppInput label="Nota" value={note} onChangeText={setNote} placeholder="Observaciones" multiline />
+            <ActionButton label="Siguiente" icon="arrow-forward-outline" onPress={() => setStep(2)} />
+          </View>
+        ) : null}
+
+        {step === 2 ? (
+          <View style={{ gap: 12 }}>
+            <SectionTitle title="Items" subtitle="Agrega varios conceptos en tarjetas compactas." />
+            <AppInput label="Descripcion" value={itemDraft.description} onChangeText={(value) => setItemDraft((current) => ({ ...current, description: value }))} placeholder="Servicio, pedido o concepto" />
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <View style={{ flex: 1 }}>
+                <AppInput label="Cantidad" value={itemDraft.qty} onChangeText={(value) => setItemDraft((current) => ({ ...current, qty: value }))} placeholder="1" keyboardType="numeric" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <AppInput label="Precio unitario" value={itemDraft.unit_price} onChangeText={(value) => setItemDraft((current) => ({ ...current, unit_price: value }))} placeholder="0" keyboardType="numeric" />
+              </View>
+            </View>
+            <ActionButton label="Agregar item" icon="add-outline" onPress={addItem} tone="success" />
+
+            {items.length === 0 ? (
+              <EmptyState title="Sin items" message="Agrega al menos un item para continuar." />
+            ) : (
+              items.map((item, index) => (
+                <ListRow
+                  key={`${item.description}-${index}`}
+                  title={item.description}
+                  subtitle={`${item.qty} x ${money(item.unit_price)}`}
+                  trailing={<Text style={{ color: theme.colors.textStrong, fontSize: 15, fontWeight: '900' }}>{money(item.total)}</Text>}
+                  footer={
+                    <ActionButton
+                      label="Eliminar"
+                      icon="trash-outline"
+                      onPress={() => setItems((current) => current.filter((_, currentIndex) => currentIndex !== index))}
+                      tone="secondary"
+                      compact
+                    />
+                  }
+                />
+              ))
+            )}
+
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <View style={{ flex: 1 }}>
+                <ActionButton label="Volver" icon="arrow-back-outline" onPress={() => setStep(1)} tone="secondary" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <ActionButton label="Siguiente" icon="arrow-forward-outline" onPress={() => setStep(3)} />
+              </View>
+            </View>
+          </View>
+        ) : null}
+
+        {step === 3 ? (
+          <View style={{ gap: 12 }}>
+            <SectionTitle title="Confirmar total" subtitle="Revisa resumen y guarda el borrador." />
+            <AppInput label="Descuento" value={discount} onChangeText={setDiscount} placeholder="0" keyboardType="numeric" />
+            <ListRow title={`Subtotal: ${money(subtotal)}`} subtitle={`Total final: ${money(total)}`} />
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <View style={{ flex: 1 }}>
+                <ActionButton label="Volver" icon="arrow-back-outline" onPress={() => setStep(2)} tone="secondary" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <ActionButton label="Guardar" icon="save-outline" onPress={saveQuote} />
+              </View>
+            </View>
+          </View>
+        ) : null}
+      </AppModal>
+
+      <AppModal
         visible={detailVisible}
         title={detailQuote?.quote_number || 'Detalle'}
+        subtitle="Resumen compacto de la cotizacion."
         onClose={() => setDetailVisible(false)}
       >
         {detailQuote ? (
@@ -272,7 +324,7 @@ export function QuotesScreen({ snapshot, onDataChanged, openTab }) {
                 key={item.id}
                 title={item.description}
                 subtitle={`${item.qty} x ${money(item.unit_price)}`}
-                trailing={<Text style={{ color: '#0f172a', fontSize: 14, fontWeight: '900' }}>{money(item.total)}</Text>}
+                trailing={<Text style={{ color: theme.colors.textStrong, fontSize: 15, fontWeight: '900' }}>{money(item.total)}</Text>}
               />
             ))}
             <ListRow
@@ -281,7 +333,7 @@ export function QuotesScreen({ snapshot, onDataChanged, openTab }) {
             />
           </View>
         ) : null}
-      </SheetModal>
+      </AppModal>
     </>
   );
 }
