@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Platform, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { initializeDatabase } from './db/database';
@@ -16,7 +16,7 @@ import {
   listSales,
   listTransactions,
 } from './db/repository';
-import { BottomNav } from './components/UI';
+import { BottomNav } from './components/BottomNav';
 import { HomeScreen } from './screens/HomeScreen';
 import { QuotesScreen } from './screens/QuotesScreen';
 import { SalesScreen } from './screens/SalesScreen';
@@ -32,7 +32,7 @@ const MAIN_TABS = [
   { key: 'quotes', label: 'Cotiz.', icon: 'document-text-outline' },
   { key: 'sales', label: 'Ventas', icon: 'receipt-outline' },
   { key: 'inventory', label: 'Invent.', icon: 'cube-outline' },
-  { key: 'more', label: 'Mas', icon: 'ellipsis-horizontal-circle-outline' },
+  { key: 'more', label: 'Más', icon: 'ellipsis-horizontal-circle-outline' },
 ];
 
 const HIDDEN_ROUTES = ['customers', 'movements', 'ledger', 'settings'];
@@ -47,7 +47,6 @@ export function AppShell() {
 }
 
 function AppShellInner() {
-  const insets = useSafeAreaInsets();
   const [ready, setReady] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [currentRoute, setCurrentRoute] = useState('home');
@@ -178,9 +177,7 @@ function AppShellInner() {
           />
         </View>
 
-        <View style={[styles.bottomWrap, { paddingBottom: Math.max(insets.bottom, 10) }]}>
-          <BottomNav tabs={MAIN_TABS} activeTab={activeBottomTab} onChange={(tab) => navigate(tab)} bottomInset={0} />
-        </View>
+        <BottomNav tabs={MAIN_TABS} activeTab={activeBottomTab} onChange={(tab) => navigate(tab)} />
       </SafeAreaView>
     </LinearGradient>
   );
@@ -195,10 +192,6 @@ const styles = StyleSheet.create({
   },
   body: {
     flex: 1,
-  },
-  bottomWrap: {
-    paddingHorizontal: 8,
-    backgroundColor: 'transparent',
   },
   errorRoot: {
     flex: 1,

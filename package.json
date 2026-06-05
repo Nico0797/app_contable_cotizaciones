@@ -9,7 +9,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "preview:apk": "eas build -p android --profile preview",
-    "lint:basic": "node --check App.js && node --check src/AppShell.js && node --check src/components/UI.js && node --check src/db/database.js && node --check src/db/repository.js && node --check src/screens/HomeScreen.js && node --check src/screens/QuotesScreen.js && node --check src/screens/SalesScreen.js && node --check src/screens/CustomersScreen.js && node --check src/screens/InventoryScreen.js && node --check src/screens/MovementsScreen.js && node --check src/screens/LedgerScreen.js && node --check src/screens/MoreScreen.js && node --check src/theme.js && node --check src/utils/format.js"
+    "lint:basic": "node --check App.js && node --check src/AppShell.js && node --check src/components/UI.js && node --check src/components/BottomNav.js && node --check src/db/database.js && node --check src/db/repository.js && node --check src/screens/HomeScreen.js && node --check src/screens/QuotesScreen.js && node --check src/screens/SalesScreen.js && node --check src/screens/CustomersScreen.js && node --check src/screens/InventoryScreen.js && node --check src/screens/MovementsScreen.js && node --check src/screens/LedgerScreen.js && node --check src/screens/MoreScreen.js && node --check src/theme.js && node --check src/utils/format.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",

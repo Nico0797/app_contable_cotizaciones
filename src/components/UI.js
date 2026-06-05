@@ -228,38 +228,6 @@ export function ListRow({ title, subtitle, trailing, footer }) {
   );
 }
 
-export function BottomNav({ tabs, activeTab, onChange, bottomInset = 0 }) {
-  return (
-    <View style={[styles.bottomNavWrap, { paddingBottom: Math.max(bottomInset, 8) }]}>
-      <LinearGradient colors={['rgba(10,16,30,0.96)', 'rgba(10,16,30,0.88)']} style={styles.bottomNav}>
-        {tabs.map((tab) => {
-          const active = tab.key === activeTab;
-          return (
-            <Pressable
-              key={tab.key}
-              onPress={() => onChange(tab.key)}
-              style={({ pressed }) => [
-                styles.bottomNavItem,
-                active ? styles.bottomNavItemActive : null,
-                { opacity: pressed ? 0.88 : 1 },
-              ]}
-            >
-              <Ionicons
-                name={tab.icon}
-                size={19}
-                color={active ? theme.colors.textStrong : theme.colors.muted}
-              />
-              <Text style={[styles.bottomNavLabel, active ? styles.bottomNavLabelActive : null]}>
-                {tab.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </LinearGradient>
-    </View>
-  );
-}
-
 export const uiStyles = StyleSheet.create({
   rowWrap: {
     flexDirection: 'row',
@@ -544,40 +512,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     marginTop: 4,
-  },
-  bottomNavWrap: {
-    backgroundColor: 'transparent',
-    paddingHorizontal: 12,
-    paddingTop: 6,
-  },
-  bottomNav: {
-    flexDirection: 'row',
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: theme.colors.stroke,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    gap: 6,
-  },
-  bottomNavItem: {
-    flex: 1,
-    minWidth: 64,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-  },
-  bottomNavItemActive: {
-    backgroundColor: 'rgba(79,140,255,0.18)',
-  },
-  bottomNavLabel: {
-    color: theme.colors.muted,
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  bottomNavLabelActive: {
-    color: theme.colors.textStrong,
   },
 });
